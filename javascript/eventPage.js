@@ -9,11 +9,8 @@ let tabStream,
   audioConfig,
   recognizer,
   text = '',
-  score = 0,
   micable = true,
-  paused = false,
-  email,
-  duration;
+  paused = false;
 
 const constraints = {
   audio: true,
@@ -21,11 +18,10 @@ const constraints = {
 
 // azure speech configurations
 const speechConfig = SpeechSDK.SpeechConfig.fromSubscription(
-  '4bc1dcdc604e4e0bb10b90fd93696fc3 ',
+  'd8ea273597624018be55d5f5dee557ab',
   'eastus'
 );
 speechConfig.speechRecognitionLanguage = 'en-IN';
-speechConfig.outputFormat = 1;
 
 // get tab audio
 function getTabAudio() {
@@ -45,6 +41,8 @@ function getTabAudio() {
     audioConfig = SpeechSDK.AudioConfig.fromStreamInput(output);
     recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
 
+    console.log(recognizer);
+
     recognizer.startContinuousRecognitionAsync();
 
     recognizer.recognizing = (s, e) =>
@@ -52,11 +50,7 @@ function getTabAudio() {
 
     recognizer.recognized = (s, e) => {
       text += e.result.text;
-      if (score == 0) {
-        score = Math.max(score, JSON.parse(e.result.json).NBest[0].Confidence);
-      } else {
-        score = (score + JSON.parse(e.result.json).NBest[0].Confidence) / 2;
-      }
+      console.log(text);
     };
 
     recognizer.canceled = (s, e) => {
@@ -67,29 +61,24 @@ function getTabAudio() {
     recognizer.sessionStopped = (s, e) => {
       console.log('\n Session stopped event.');
       recognizer.stopContinuousRecognitionAsync();
-      chrome.browserAction.setIcon({ path: '../assets/icon48.png' });
 
-      chrome.storage.sync.get('email', (data) => {
-        const newWindow = window.open('../html/textEditor.html');
-        newWindow.text = text.replace('undefined', '');
-        newWindow.email = data.email;
-        newWindow.duration = duration;
-        newWindow.confidenceScore = (100 * score).toFixed(2);
+      // send text to content sciprt or make request to the backend
+      chrome.tabs.query({ active: true, currentWindow: true }, function (tabs) {
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { type: 'data', data: text.replace('undefined', '') },
+          () => {
+            // reload the background script to reset the variables
+            reloadBackgroundScript();
+          }
+        );
       });
-
-      // reload the background script to reset the variables
-      reloadBackgroundScript();
     };
   });
 }
 
 function reloadBackgroundScript() {
   chrome.extension.getBackgroundPage().window.location.reload();
-}
-
-function cancelStream() {
-  chrome.browserAction.setIcon({ path: '../assets/icon48.png' });
-  reloadBackgroundScript();
 }
 
 // get mic audio
@@ -105,10 +94,7 @@ function getMicAudio() {
 
 // start recording the stream
 function startRecord() {
-  setTimeout(() => {
-    chrome.browserAction.setIcon({ path: '../assets/icon_red.png' });
-    getMicAudio();
-  }, 3000);
+  setTimeout(() => getMicAudio(), 3000);
 }
 
 function pauseResumeRecord() {
@@ -138,10 +124,9 @@ function muteMic() {
 }
 
 // stop record -> stop all the tracks
-function stopRecord(totalTime) {
+function stopRecord() {
   micStream.getTracks().forEach((t) => t.stop());
   tabStream.getTracks().forEach((t) => t.stop());
-  duration = totalTime;
 
   recognizer.stopContinuousRecognitionAsync();
 }
@@ -152,7 +137,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       startRecord();
       break;
     case 'stop':
-      stopRecord(request.duration);
+      stopRecord();
       break;
     case 'pause':
       pauseResumeRecord();
@@ -161,7 +146,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       muteMic();
       break;
     case 'cancel':
-      cancelStream();
+      reloadBackgroundScript();
       break;
     default:
       break;
