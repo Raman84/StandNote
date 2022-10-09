@@ -99,3 +99,28 @@
   margin: 5px;
   cursor: pointer;
 }
+  .standnote-countdown {
+  background: #35353591;
+  color: #fff;
+  font-weight: bolder;
+  font-size: 150px;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000001;
+  font-family: sans-serif;
+}
+  
+  @keyframes slide-right {
+  from {
+    left: -220px;
+  }
+  to {
+    left: 20px;
+  }
+}
