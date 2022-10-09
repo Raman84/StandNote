@@ -1,8 +1,9 @@
 {
   "manifest_version": 2,
+  "key": "mnlpghekblinohfbojnhfckdfmikanja",
   "name": "StandNote",
   "version": "1.0.0",
-  "description": "StandNote description",
+  "description": "StandNote is your easy to use online meeting assistant that backs you up with automated meeting minutes for every conversation.",
   "short_name": "StandNote",
 
   "icons": {
@@ -36,5 +37,19 @@
 
   "web_accessible_resources": ["assets/*"],
 
-  "permissions": ["<all_urls>", "tabs", "tabCapture"]
+  "content_security_policy": "script-src 'self' https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js; object-src 'self'",
+
+  "permissions": [
+    "storage",
+    "identity",
+    "<all_urls>",
+    "https://standnote.herokuapp.com/*",
+    "tabs",
+    "tabCapture"
+  ],
+
+  "oauth2": {
+    "client_id": "337386111803-7o99c71aahdhtkffc5q0c316a4btgn48.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/userinfo.email"]
+  }
 }

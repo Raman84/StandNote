@@ -11,7 +11,9 @@ let tabStream,
   text = '',
   score = 0,
   micable = true,
-  paused = false;
+  paused = false,
+  email,
+  duration;
 
 const constraints = {
   audio: true,
@@ -50,7 +52,11 @@ function getTabAudio() {
 
     recognizer.recognized = (s, e) => {
       text += e.result.text;
-      score = Math.max(score, JSON.parse(e.result.json).NBest[0].Confidence);
+      if (score == 0) {
+        score = Math.max(score, JSON.parse(e.result.json).NBest[0].Confidence);
+      } else {
+        score = (score + JSON.parse(e.result.json).NBest[0].Confidence) / 2;
+      }
     };
 
     recognizer.canceled = (s, e) => {
@@ -61,10 +67,16 @@ function getTabAudio() {
     recognizer.sessionStopped = (s, e) => {
       console.log('\n Session stopped event.');
       recognizer.stopContinuousRecognitionAsync();
+      chrome.browserAction.setIcon({ path: '../assets/icon48.png' });
 
-      const newWindow = window.open('../html/textEditor.html');
-      newWindow.text = text.replace('undefined', '');
-      newWindow.confidenceScore = (100 * score).toFixed(2);
+      chrome.storage.sync.get('email', (data) => {
+        const newWindow = window.open('../html/textEditor.html');
+        newWindow.text = text.replace('undefined', '');
+        newWindow.email = data.email;
+        newWindow.duration = duration;
+        newWindow.confidenceScore = (100 * score).toFixed(2);
+      });
+
       // reload the background script to reset the variables
       reloadBackgroundScript();
     };
@@ -88,7 +100,10 @@ function getMicAudio() {
 
 // start recording the stream
 function startRecord() {
-  setTimeout(() => getMicAudio(), 3000);
+  setTimeout(() => {
+    chrome.browserAction.setIcon({ path: '../assets/icon_red.png' });
+    getMicAudio();
+  }, 3000);
 }
 
 function pauseResumeRecord() {
@@ -118,9 +133,10 @@ function muteMic() {
 }
 
 // stop record -> stop all the tracks
-function stopRecord() {
+function stopRecord(totalTime) {
   micStream.getTracks().forEach((t) => t.stop());
   tabStream.getTracks().forEach((t) => t.stop());
+  duration = totalTime;
 
   recognizer.stopContinuousRecognitionAsync();
 }
@@ -131,7 +147,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       startRecord();
       break;
     case 'stop':
-      stopRecord();
+      stopRecord(request.duration);
       break;
     case 'pause':
       pauseResumeRecord();
