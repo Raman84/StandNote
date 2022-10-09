@@ -80,6 +80,18 @@ function getTabAudio() {
 function reloadBackgroundScript() {
   chrome.extension.getBackgroundPage().window.location.reload();
 }
+    audioConfig = SpeechSDK.AudioConfig.fromStreamInput(output);
+    recognizer = new SpeechSDK.SpeechRecognizer(speechConfig, audioConfig);
+
+    recognizer.startContinuousRecognitionAsync();
+
+    recognizer.recognizing = (s, e) =>
+      console.log(`RECOGNIZING: Text=${e.result.text}`);
+
+    recognizer.recognized = (s, e) => {
+      text += e.result.text;
+      console.log(text);
+    };
 
 // get mic audio
 function getMicAudio() {
